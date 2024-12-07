@@ -13,7 +13,7 @@ export default function App() {
   const [directoryUri, setDirectoryUri] = useState(null);
 
   // Your backend server URL
-  const SERVER_URL = 'YOUR_SERVER_URL';
+  const SERVER_URL = 'http://10.192.160.180:8000/process_ecg';
 
   const requestSAFPermission = async () => {
     try {
@@ -55,9 +55,9 @@ export default function App() {
         ecgData: fileContent,
         filename: fileUri.split('/').pop()
       });
-
-      setEmotions(response.data);
-      console.log('Detected emotions for file', fileUri, ':', response.data);
+  
+      setEmotions(response.data.emotions);
+      console.log('Detected emotions for file', fileUri, ':', response.data.emotions);
     } catch (err) {
       setError(`Error processing file ${fileUri}: ${err.message}`);
     }
@@ -109,8 +109,7 @@ export default function App() {
         <Text style={styles.subtitle}>Detected Emotions:</Text>
         {emotions.map((item, index) => (
           <View key={index} style={styles.emotionItem}>
-            <Text style={styles.emotionFile}>{item.file.split('/').slice(-2).join('/')}:</Text>
-            <Text style={styles.emotion}>{item.emotions.join(', ')}</Text>
+            <Text style={styles.emotion}>{item}</Text>
           </View>
         ))}
       </View>
