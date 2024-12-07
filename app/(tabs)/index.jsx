@@ -8,11 +8,9 @@ const { StorageAccessFramework } = FileSystem;
 export default function App() {
   const [emotions, setEmotions] = useState([]);
   const [error, setError] = useState(null);
-  const [processedFiles, setProcessedFiles] = useState(new Set());
   const [foundFiles, setFoundFiles] = useState([]);
   const [directoryUri, setDirectoryUri] = useState(null);
 
-  // Your backend server URL
   const SERVER_URL = 'http://10.192.160.180:8000/process_ecg';
 
   const requestSAFPermission = async () => {
@@ -57,7 +55,7 @@ export default function App() {
       });
   
       setEmotions(response.data.emotions);
-      console.log('Detected emotions for file', fileUri, ':', response.data.emotions);
+      console.log('Detected emotions', response.data.emotions);
     } catch (err) {
       setError(`Error processing file ${fileUri}: ${err.message}`);
     }
@@ -69,12 +67,8 @@ export default function App() {
         try {
           const csvFiles = await findCsvFiles(directoryUri);
           setFoundFiles(csvFiles);
-
           for (const fileUri of csvFiles) {
-            if (!processedFiles.has(fileUri)) {
               await processNewFile(fileUri);
-              setProcessedFiles(prev => new Set([...prev, fileUri]));
-            }
           }
         } catch (err) {
           setError('Error checking for files: ' + err.message);
@@ -89,8 +83,8 @@ export default function App() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>ECG Emotion Monitor</Text>
       
-      {!directoryUri && (
-        <Button title="Grant Directory Access" onPress={requestSAFPermission} />
+      {(
+        <Button title="Select ECG" onPress={requestSAFPermission} />
       )}
 
       {error && <Text style={styles.error}>{error}</Text>}
@@ -100,7 +94,6 @@ export default function App() {
         {foundFiles.map((file, index) => (
           <Text key={index} style={styles.file}>
             {file.split('/').slice(-2).join('/')}
-            {processedFiles.has(file) ? ' (processed)' : ''}
           </Text>
         ))}
       </View>
