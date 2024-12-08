@@ -97,8 +97,9 @@ class ECGProcessor:
             prediction_counts = pd.Series(predictions).value_counts()
             final_predictions = prediction_counts.index.tolist()
             
+            emotions = ['sad', 'fear', 'happy', 'anger', 'neutral', 'disgust', 'surprise']
             return {
-                'predictions': final_predictions,
+                'predictions': [emotions[pred] for pred in final_predictions],
                 'counts': prediction_counts.tolist(),
                 'chunks_processed': len(chunks)
             }
@@ -129,8 +130,7 @@ def process_ecg():
         
         return jsonify({
             'emotions': results['predictions'],
-            'counts': results['counts'],
-            'chunks_processed': results['chunks_processed']
+            'counts': results['counts']
         })
         
     except Exception as e:
