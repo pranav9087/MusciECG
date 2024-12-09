@@ -1,37 +1,45 @@
 from flask import Flask, request, jsonify
-from googleapiclient.discovery import build
 import os
-import pickle
+from flask_cors import CORS
 import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
-import random
+import pickle
+import os
 
-app = Flask(__name__)
-
-# ECGProcessor class to handle ECG data processing
 class ECGProcessor:
     def __init__(self, model_path, scaler_path, chunk_size=5000, overlap=0):
+        """
+        Initialize ECG processor
+        
+        Args:
+            model_path: Path to saved Random Forest model
+            scaler_path: Path to saved StandardScaler
+            chunk_size: Size of ECG chunks to process (default 5000)
+            overlap: Number of samples to overlap between chunks (default 0)
+        """
         self.chunk_size = chunk_size
         self.overlap = overlap
-
+        
         with open(model_path, 'rb') as f:
             self.model = pickle.load(f)
         with open(scaler_path, 'rb') as f:
             self.scaler = pickle.load(f)
-
+            
     def parse_ecg_data(self, raw_data):
         lines = raw_data.split('\n')
         data_values = []
         data_started = False
-
+        
         for line in lines:
             if line.strip() == '':
                 continue
+            # Skip header until we find numeric data
             if not data_started:
                 try:
                     num = float(line.strip(','))
+                    # Assuming data in range [-1, 1] as an indicator for start of ECG data
                     if -1 <= num <= 1:
                         data_started = True
                 except ValueError:
@@ -42,86 +50,136 @@ class ECGProcessor:
                     data_values.append(value)
                 except ValueError:
                     continue
-
+                    
         return np.array(data_values)
-
+    
     def extract_statistical_features(self, chunk):
-        return np.array([
+        features = []
+        
+        # Time domain statistical features
+        features.extend([
             np.mean(chunk),
             np.std(chunk),
             stats.skew(chunk),
             stats.kurtosis(chunk),
-            np.ptp(chunk)
+            np.ptp(chunk)  # Peak-to-peak range
         ])
-
+        
+        return np.array(features)
+    
     def get_chunks(self, data):
         chunks = []
         step = self.chunk_size - self.overlap
-
+        
         for i in range(0, len(data) - self.chunk_size + 1, step):
             chunk = data[i:i + self.chunk_size]
             chunks.append(chunk)
-
+            
         return chunks
-
+    
     def process_and_predict(self, ecg_data):
-        data = self.parse_ecg_data(ecg_data)
-        chunks = self.get_chunks(data)
-        if not chunks:
-            raise ValueError("Not enough data for analysis")
+        try:
+            data = self.parse_ecg_data(ecg_data)
+            chunks = self.get_chunks(data)
+            
+            if not chunks:
+                raise ValueError("Not enough data for analysis")
+            
+            # Process each chunk
+            predictions = []
+            for chunk in chunks:
+                features = self.extract_statistical_features(chunk)
+                features = features.reshape(1, -1)
+                features_scaled = self.scaler.transform(features)
+                pred = self.model.predict(features_scaled)[0]
+                predictions.append(pred)
+            
+            # Get mode of predictions
+            prediction_counts = pd.Series(predictions).value_counts()
+            final_predictions = prediction_counts.index.tolist()
+            
+            # Emotions are indexed as [0: sad, 1: fear, 2: happy, 3: anger, 4: neutral, 5: disgust, 6: surprise]
+            emotions = ['sad', 'fear', 'happy', 'anger', 'neutral', 'disgust', 'surprise']
+            
+            return {
+                'predictions': [emotions[pred] for pred in final_predictions],
+                'counts': prediction_counts.tolist(),
+                'chunks_processed': len(chunks)
+            }
+            
+        except Exception as e:
+            raise RuntimeError(f"Error processing ECG data: {str(e)}")
 
-        predictions = []
-        for chunk in chunks:
-            features = self.extract_statistical_features(chunk).reshape(1, -1)
-            features_scaled = self.scaler.transform(features)
-            pred = self.model.predict(features_scaled)[0]
-            predictions.append(pred)
+app = Flask(__name__)
+CORS(app)
 
-        prediction_counts = pd.Series(predictions).value_counts()
-        emotions = ['sad', 'fear', 'happy', 'anger', 'neutral', 'disgust', 'surprise']
-        return [emotions[pred] for pred in prediction_counts.index]
+CSV_DIR = 'csv_files'
 
-# Function to fetch a random song based on emotion using the YouTube Data API
-def get_random_song(emotion, api_key):
-    youtube = build("youtube", "v3", developerKey=api_key)
-    query = f"songs about {emotion}"
-    search_response = youtube.search().list(
-        q=query,
-        part="snippet",
-        type="video",
-        maxResults=10
-    ).execute()
+if not os.path.exists(CSV_DIR):
+    os.makedirs(CSV_DIR)
 
-    videos = [item["id"]["videoId"] for item in search_response.get("items", [])]
-    if not videos:
-        return "No songs found for this emotion."
-    return f"https://www.youtube.com/watch?v={random.choice(videos)}"
+# Define a mapping from emotions to recommended songs (with YouTube links)
+emotion_songs = {
+    'happy': [
+        {'title': 'Pharrell Williams - Happy', 'youtube_link': 'https://www.youtube.com/watch?v=y6Sxv-sUYtM'},
+        {'title': 'Justin Timberlake - Can\'t Stop the Feeling!', 'youtube_link': 'https://www.youtube.com/watch?v=ru0K8uYEZWw'},
+        {'title': 'Katrina & The Waves - Walking on Sunshine', 'youtube_link': 'https://www.youtube.com/watch?v=iPUmE-tne5U'}
+    ],
+    'sad': [
+        {'title': 'Adele - Someone Like You', 'youtube_link': 'https://www.youtube.com/watch?v=hLQl3WQQoQ0'},
+        {'title': 'Sam Smith - Stay With Me', 'youtube_link': 'https://www.youtube.com/watch?v=pB-5XG-DbAA'},
+        {'title': 'Billie Eilish - When the Party\'s Over', 'youtube_link': 'https://www.youtube.com/watch?v=pbMwTqkKSps'}
+    ],
+    'fear': [
+        {'title': 'Radiohead - Creep', 'youtube_link': 'https://www.youtube.com/watch?v=XFkzRNyygfk'},
+        {'title': 'Evanescence - Bring Me To Life', 'youtube_link': 'https://www.youtube.com/watch?v=3YxaaGgTQYM'}
+    ],
+    'anger': [
+        {'title': 'Rage Against the Machine - Killing In the Name', 'youtube_link': 'https://www.youtube.com/watch?v=bWXazVhlyxQ'},
+        {'title': 'System Of A Down - Chop Suey!', 'youtube_link': 'https://www.youtube.com/watch?v=CSvFpBOe8eY'}
+    ],
+    'neutral': [
+        {'title': 'Lo-fi Beats - Chill Study Mix', 'youtube_link': 'https://www.youtube.com/watch?v=5qap5aO4i9A'},
+        {'title': 'Chillhop Essentials', 'youtube_link': 'https://www.youtube.com/watch?v=7NOSDKb0HlU'}
+    ],
+    'disgust': [
+        {'title': 'Nine Inch Nails - Closer', 'youtube_link': 'https://www.youtube.com/watch?v=PTFwQP86BRs'},
+        {'title': 'Marilyn Manson - The Beautiful People', 'youtube_link': 'https://www.youtube.com/watch?v=Ypkv0HeUvTc'}
+    ],
+    'surprise': [
+        {'title': 'MGMT - Time to Pretend', 'youtube_link': 'https://www.youtube.com/watch?v=B9dSYgd5Elk'},
+        {'title': 'Coldplay - Paradise', 'youtube_link': 'https://www.youtube.com/watch?v=1G4isv_Fylg'}
+    ]
+}
 
-# Flask endpoint to process ECG data and return emotion and song link
 @app.route('/process_ecg', methods=['POST'])
 def process_ecg():
     try:
         ecg_data = request.json['ecgData']
-        api_key = request.json['apiKey']
+        model_path = os.path.join('assets', 'model_assets', 'random_forest_model.pkl')
+        scaler_path = os.path.join('assets', 'model_assets', 'scaler.pkl')
         
-        # Paths to your model and scaler files
-        model_path = 'assets/model_assets/random_forest_model.pkl'
-        scaler_path = 'assets/model_assets/scaler.pkl'
+        processor = ECGProcessor(
+            model_path=model_path,
+            scaler_path=scaler_path
+        )
+        results = processor.process_and_predict(ecg_data)
         
-        processor = ECGProcessor(model_path, scaler_path)
-        emotions = processor.process_and_predict(ecg_data)
-
-        if emotions:
-            # Use the first predicted emotion for song recommendation
-            emotion = emotions[0]
-            song_link = get_random_song(emotion, api_key)
-            return jsonify({
-                'emotion': emotion,
-                'song_link': song_link
-            })
-        else:
-            return jsonify({'error': 'No emotions detected'}), 400
-
+        # Select the top predicted emotion based on the first emotion in results['predictions']
+        # since `final_predictions` was used to sort them by mode frequency.
+        final_emotion = results['predictions'][0] if results['predictions'] else 'neutral'
+        
+        # Retrieve songs for the final emotion
+        songs_for_emotion = emotion_songs.get(final_emotion, [])
+        
+        # Return emotions, counts, selected songs, and the final emotion
+        return jsonify({
+            'emotions': results['predictions'],
+            'counts': results['counts'],
+            'final_emotion': final_emotion,
+            'songs': songs_for_emotion
+        })
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
