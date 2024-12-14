@@ -1,164 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Button } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import axios from 'axios';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 
-const { StorageAccessFramework } = FileSystem;
-
-export default function App() {
-  const [emotions, setEmotions] = useState([]);
-  const [error, setError] = useState(null);
-  const [foundFiles, setFoundFiles] = useState([]);
-  const [directoryUri, setDirectoryUri] = useState(null);
-
-  const SERVER_URL = 'http://10.192.160.180:8000/process_ecg';
-
-  const requestSAFPermission = async () => {
-    try {
-      const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (permissions.granted) {
-        setDirectoryUri(permissions.directoryUri);
-      } else {
-        setError('Permission to access directory was denied');
-      }
-    } catch (err) {
-      setError('Error requesting permissions: ' + err.message);
-    }
-  };
-
-  const findCsvFiles = async (directoryUri) => {
-    const csvFiles = [];
-    try {
-      const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
-      console.log(entries.length);
-      for (const entry of entries) {
-        if (entry.endsWith('.csv')) {
-          console.log('Found CSV file:', entry);
-          csvFiles.push(entry);
-        }
-      }
-    } catch (error) {
-      console.error(`Error reading directory ${directoryUri}:`, error);
-    }
-
-    console.log(`Total CSV files found: ${csvFiles.length}`);
-    return csvFiles;
-  };
-
-  const processNewFile = async (fileUri) => {
-    try {
-      const fileContent = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
-      
-      const response = await axios.post(SERVER_URL, {
-        ecgData: fileContent,
-        filename: fileUri.split('/').pop()
-      });
-  
-      setEmotions(response.data.emotions);
-      console.log('Detected emotions', response.data.emotions);
-    } catch (err) {
-      setError(`Error processing file ${fileUri}: ${err.message}`);
-    }
-  };
-
-  useEffect(() => {
-    if (directoryUri) {
-      const checkForNewFiles = async () => {
-        try {
-          const csvFiles = await findCsvFiles(directoryUri);
-          setFoundFiles(csvFiles);
-          for (const fileUri of csvFiles) {
-              await processNewFile(fileUri);
-          }
-        } catch (err) {
-          setError('Error checking for files: ' + err.message);
-        }
-      };
-
-      checkForNewFiles();
-    }
-  }, [directoryUri]);
+export default function HomePage() {
+  const router = useRouter();
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>ECG Emotion Monitor</Text>
-      
-      {(
-        <Button title="Select ECG" onPress={requestSAFPermission} />
-      )}
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <View style={styles.filesContainer}>
-        <Text style={styles.subtitle}>Files Found ({foundFiles.length}):</Text>
-        {foundFiles.map((file, index) => (
-          <Text key={index} style={styles.file}>
-            {file.split('/').slice(-2).join('/')}
-          </Text>
-        ))}
+    <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../../assets/ecg.png')}
+          style={styles.logo}
+        />
       </View>
-      
-      <View style={styles.emotionsContainer}>
-        <Text style={styles.subtitle}>Detected Emotions:</Text>
-        {emotions.map((item, index) => (
-          <View key={index} style={styles.emotionItem}>
-            <Text style={styles.emotion}>{item}</Text>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+      <Text style={styles.title}>MusicECG</Text>
+      <Text style={styles.subtitle}>Experience Music Through Your Heart</Text>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          router.push({ pathname: 'Main' });
+        }}
+      >
+        <Text style={styles.buttonText}>Go to ECG Monitor</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f7fa',
     padding: 20,
-    backgroundColor: '#fff',
+  },
+  logoContainer: {
+    marginBottom: 40,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
   },
   title: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  filesContainer: {
-    marginBottom: 20,
-  },
-  emotionsContainer: {
-    marginTop: 20,
+    color: '#6200ee',
+    marginBottom: 15,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   subtitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  fileItem: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 5,
-  },
-  file: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: 'bold',
-  },
-  fileDetails: {
-    fontSize: 12,
     color: '#666',
-    marginTop: 5,
+    marginBottom: 50,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  emotion: {
-    fontSize: 16,
-    marginBottom: 5,
+  button: {
+    backgroundColor: '#03dac6',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  noFiles: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#666',
-  }
+  buttonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
 });
