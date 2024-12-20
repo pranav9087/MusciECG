@@ -40,7 +40,11 @@ Ensure you have the following installed on your system:
      ```
    - Make a note of your local IP address (e.g., `192.168.x.x`). This will be needed for configuring the app.
 
-4. **Update the Server URL**:
+4. **Download Sample Data**:
+   - Navigate to the csv folder in the repository.
+   - Download the primary data file to use for testing the app.
+
+5. **Update the Server URL**:
    - Open `app/(tabs)/index.jsx`.
    - Find the line:
      ```javascript
@@ -48,7 +52,7 @@ Ensure you have the following installed on your system:
      ```
    - Replace `192.168.xx.xxx` with your local IP address.
 
-5. **Run the App**:
+6. **Run the App**:
    - Start the Expo development server:
      ```bash
      npx expo start
@@ -57,7 +61,7 @@ Ensure you have the following installed on your system:
      - For a physical device, scan the QR code using the Expo Go app.
      - For an emulator, select your emulator from the Expo interface.
 
-6. **Experience MusicECG**:
+7. **Experience MusicECG**:
    - Collect ECG data using your Samsung smartwatch.
    - Allow the app to process the data and recommend music based on your emotional state.
 
