@@ -1,50 +1,98 @@
-# Welcome to your Expo app 👋
+# MusicECG
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+MusicECG is a React Native app built using Expo that automatically detects your emotions from ECG data collected by a Samsung smartwatch and recommends music based on these emotions. This project combines the power of mobile development and AI to create a personalized music experience.
 
-## Get started
+## Features
+- **Emotion Detection**: Analyze ECG data to determine your current emotional state.
+- **Music Recommendations**: Receive music suggestions tailored to your mood.
+- **Seamless Integration**: Designed for Samsung smartwatches, with plans to support more devices in the future.
 
-1. Install dependencies
+---
 
+## Getting Started
+
+Follow these steps to set up the project and run the app locally.
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Node.js and npm
+- Python 3
+- Expo CLI (`npm install -g expo-cli`)
+- An Android phone or emulator
+
+### Setup Instructions
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/pranav9087/MusicECG.git
+   cd MusicECG
+   ```
+
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Set Up the Server**:
+   - Navigate to the server directory and run the Python server:
+     ```bash
+     python server.py
+     ```
+   - Make a note of your local IP address (e.g., `192.168.x.x`). This will be needed for configuring the app.
 
-   ```bash
-    npx expo start
-   ```
+4. **Update the Server URL**:
+   - Open `app/(tabs)/index.jsx`.
+   - Find the line:
+     ```javascript
+     const SERVER_URL = 'http://192.168.xx.xxx:8000/process_ecg';
+     ```
+   - Replace `192.168.xx.xxx` with your local IP address.
 
-In the output, you'll find options to open the app in a
+5. **Run the App**:
+   - Start the Expo development server:
+     ```bash
+     npx expo start
+     ```
+   - Connect your Android device or emulator:
+     - For a physical device, scan the QR code using the Expo Go app.
+     - For an emulator, select your emulator from the Expo interface.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+6. **Experience MusicECG**:
+   - Collect ECG data using your Samsung smartwatch.
+   - Allow the app to process the data and recommend music based on your emotional state.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## Project Structure
+- **app/**: Contains the main application code.
+- **server.py**: Handles requests and processes ECG data.
+- **assets/**: Stores images and other static resources.
 
-When you're ready, run:
+---
 
-```bash
-npm run reset-project
-```
+## Contributing
+We welcome contributions! Feel free to fork this repository and submit pull requests. Here are some ways you can contribute:
+- Add support for more devices.
+- Improve emotion detection algorithms.
+- Enhance the user interface.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## Troubleshooting
 
-To learn more about developing your project with Expo, look at the following resources:
+### Common Issues:
+1. **Error: Unable to connect to server**
+   - Ensure the server is running (`server.py`).
+   - Check that the `SERVER_URL` in `index.jsx` matches your local IP address.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+2. **Expo app not loading on device**
+   - Ensure your phone and computer are on the same network.
+   - Restart the Expo development server.
 
-## Join the community
+### Support
+If you encounter any issues or have questions, feel free to open an issue in this repository.
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Acknowledgements
+- React Native and Expo for providing a robust development framework.
