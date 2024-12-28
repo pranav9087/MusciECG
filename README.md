@@ -71,6 +71,7 @@ Ensure you have the following installed on your system:
 - **app/**: Contains the main application code.
 - **server.py**: Handles requests and processes ECG data.
 - **assets/**: Stores images and other static resources.
+- **notebooks/**: Contains Machine Learning model training code.
 
 ---
 
